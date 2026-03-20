@@ -47,6 +47,22 @@ export const routes: Routes = [
           import('./features/client/my-loans/my-loans.component').then((m) => m.MyLoansComponent),
       },
       {
+        path: 'decided-loans',
+        canActivate: [roleGuard(['Manager', 'Supervisor', 'CreditCommittee'])],
+        loadComponent: () =>
+          import('./features/approver/decided-loans/decided-loans.component').then(
+            (m) => m.DecidedLoansComponent,
+          ),
+      },
+      {
+        path: 'request-payroll-loan',
+        canActivate: [roleGuard(['Client'])],
+        loadComponent: () =>
+          import('./features/client/request-payroll-loan/request-payroll-loan.component').then(
+            (m) => m.RequestPayrollLoanComponent,
+          ),
+      },
+      {
         path: 'pending-loans',
         canActivate: [roleGuard(['Manager', 'Supervisor', 'CreditCommittee'])],
         loadComponent: () =>

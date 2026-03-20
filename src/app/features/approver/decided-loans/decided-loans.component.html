@@ -1,12 +1,5 @@
 <div class="page">
 
-  @if (successMessage()) {
-    <div class="alert alert-success">
-      <mat-icon>check_circle</mat-icon>
-      {{ successMessage() }}
-    </div>
-  }
-
   @if (errorMessage()) {
     <div class="alert alert-error">
       <mat-icon>error</mat-icon>
@@ -17,17 +10,17 @@
   <!-- LIST VIEW -->
   @if (viewState() === 'list') {
     <div class="page-header">
-      <h2>Pending Approvals</h2>
-      <span class="count-pill">{{ totalCount() }} pending</span>
+      <h2>Reviewed Loans</h2>
+      <span class="count-pill">{{ totalCount() }} total</span>
     </div>
 
     @if (loading()) {
       <div class="loading-state"><mat-spinner diameter="40" /></div>
     } @else if (loans().length === 0) {
       <div class="empty-state">
-        <div class="empty-icon"><mat-icon>pending_actions</mat-icon></div>
-        <h3>No pending loans</h3>
-        <p>All caught up! There are no loans awaiting your approval.</p>
+        <div class="empty-icon"><mat-icon>task_alt</mat-icon></div>
+        <h3>No reviewed loans</h3>
+        <p>No loans have been approved or rejected yet.</p>
       </div>
     } @else {
       <div class="loan-list">
@@ -36,12 +29,16 @@
             <div class="loan-top">
               <div>
                 <div class="loan-amount">{{ loan.amount | currency:'USD':'symbol':'1.2-2' }}</div>
-                <div class="loan-sub">{{ loan.installments }}x {{ loan.monthlyPayment | currency:'USD':'symbol':'1.2-2' }} / month</div><div class="loan-type-tag" [ngClass]="loan.loanType === 'Payroll' ? 'tag-payroll' : 'tag-personal'">
+                <div class="loan-sub">
+                  {{ loan.installments }}x {{ loan.monthlyPayment | currency:'USD':'symbol':'1.2-2' }} / month
+                </div>
+                <div class="loan-type-tag"
+                     [ngClass]="loan.loanType === 'Payroll' ? 'tag-payroll' : 'tag-personal'">
                   {{ loan.loanType === 'Payroll' ? 'Payroll Loan' : 'Personal Loan' }}
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:10px">
-                <span class="role-badge">{{ loan.requiredApprovalRole }}</span>
+                <span class="badge" [ngClass]="getStatusClass(loan.status)">{{ loan.status }}</span>
                 <mat-icon style="color:#9ca3af;font-size:18px">chevron_right</mat-icon>
               </div>
             </div>
@@ -55,8 +52,8 @@
                 <span class="detail-value">{{ loan.installments }}x</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Monthly payment</span>
-                <span class="detail-value">{{ loan.monthlyPayment | currency:'USD':'symbol':'1.2-2' }}</span>
+                <span class="detail-label">Required approval</span>
+                <span class="detail-value">{{ loan.requiredApprovalRole }}</span>
               </div>
             </div>
           </div>
@@ -81,7 +78,7 @@
       <button mat-icon-button (click)="backToList()" class="back-btn">
         <mat-icon>arrow_back</mat-icon>
       </button>
-      <h2>Loan Approval Details</h2>
+      <h2>Loan Review Details</h2>
       @if (selectedDetail()) {
         <div class="loan-type-tag"
              [ngClass]="selectedDetail()!.loanSummary.loanType === 'Payroll' ? 'tag-payroll' : 'tag-personal'">
@@ -95,15 +92,38 @@
     } @else if (selectedDetail()) {
       <div class="detail-sections">
 
+        <!-- DECISION BANNER -->
+        @if (getDecisionInfo(selectedDetail()!)) {
+          <div class="decision-banner"
+               [ngClass]="getDecisionInfo(selectedDetail()!)!.action === 'Approved' ? 'decision-approved' : 'decision-rejected'">
+            <div class="decision-icon">
+              <mat-icon>{{ getDecisionInfo(selectedDetail()!)!.action === 'Approved' ? 'check_circle' : 'cancel' }}</mat-icon>
+            </div>
+            <div class="decision-info">
+              <span class="decision-title">
+                {{ getDecisionInfo(selectedDetail()!)!.action === 'Approved' ? 'Approved' : 'Rejected' }}
+                by {{ getDecisionInfo(selectedDetail()!)!.performedByRole }}
+              </span>
+              <span class="decision-date">
+                {{ getDecisionInfo(selectedDetail()!)!.performedAt | date:'MMM d, y · HH:mm' }}
+              </span>
+              @if (getDecisionInfo(selectedDetail()!)!.comment) {
+                <span class="decision-comment">
+                  "{{ getDecisionInfo(selectedDetail()!)!.comment }}"
+                </span>
+              }
+            </div>
+          </div>
+        }
+
         <!-- LOAN SUMMARY -->
         <div class="detail-card">
           <div class="detail-card-header">
             <span class="detail-card-title">Loan Summary</span>
             <div style="display:flex;gap:8px;align-items:center">
-              <span class="risk-badge" [ngClass]="getRiskClass(selectedDetail()!.loanSummary.requiredApprovalRole)">
-                {{ getRiskLabel(selectedDetail()!.loanSummary.requiredApprovalRole) }}
+              <span class="badge" [ngClass]="getStatusClass(selectedDetail()!.loanSummary.status)">
+                {{ selectedDetail()!.loanSummary.status }}
               </span>
-              <span class="role-badge">{{ selectedDetail()!.loanSummary.requiredApprovalRole }}</span>
             </div>
           </div>
           <div class="summary-amount">
@@ -128,22 +148,19 @@
               <span class="info-value">{{ selectedDetail()!.loanSummary.requestedAt | date:'MMM d, y' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Status</span>
-              <span class="badge badge-pending">{{ selectedDetail()!.loanSummary.status }}</span>
+              <span class="info-label">Required approval</span>
+              <span class="info-value">{{ selectedDetail()!.loanSummary.requiredApprovalRole }}</span>
             </div>
           </div>
         </div>
 
-        <!-- PAYROLL SUMMARY — só aparece para Payroll loans -->
+        <!-- PAYROLL RISK -->
         @if (selectedDetail()!.loanSummary.loanType === 'Payroll' && selectedDetail()!.payrollSummary) {
           <div class="detail-card">
             <div class="detail-card-header">
               <span class="detail-card-title">Payroll Risk</span>
-              <span class="estimated-badge" style="background:rgba(29,158,117,0.12);color:#0f6e56">
-                Payroll Loan
-              </span>
+              <span class="estimated-badge" style="background:rgba(29,158,117,0.12);color:#0f6e56">Payroll Loan</span>
             </div>
-
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Employer</span>
@@ -162,7 +179,6 @@
                 <span class="info-value">{{ selectedDetail()!.payrollSummary!.existingPayrollDeductions | currency:'USD':'symbol':'1.2-2' }}</span>
               </div>
             </div>
-
             <div class="profit-grid" style="margin-top:4px">
               <div class="profit-item positive">
                 <span class="profit-label">Payroll margin limit (35%)</span>
@@ -172,33 +188,21 @@
                 <span class="profit-label">Available margin</span>
                 <span class="profit-value">{{ selectedDetail()!.payrollSummary!.availablePayrollMargin | currency:'USD':'symbol':'1.2-2' }}</span>
               </div>
-              <div class="profit-item negative">
-                <span class="profit-label">Monthly payment</span>
-                <span class="profit-value">{{ selectedDetail()!.payrollSummary!.monthlyPayment | currency:'USD':'symbol':'1.2-2' }}</span>
-              </div>
               <div class="profit-item net">
-                <span class="profit-label">Remaining margin after approval</span>
-                <span class="profit-value net-value" [class.negative-value]="selectedDetail()!.payrollSummary!.remainingPayrollMargin < 0">
-          {{ selectedDetail()!.payrollSummary!.remainingPayrollMargin | currency:'USD':'symbol':'1.2-2' }}
-        </span>
+                <span class="profit-label">Payroll commitment</span>
+                <span class="profit-value net-value margin-usage-value"
+                      [ngClass]="getPayrollCommitmentClass(selectedDetail()!.payrollSummary!.marginUsageAfterApproval)">
+                  {{ selectedDetail()!.payrollSummary!.marginUsageAfterApproval | percent:'1.1-2' }}
+                  <span class="commitment-label-inline">
+                    ({{ getPayrollCommitmentLabel(selectedDetail()!.payrollSummary!.marginUsageAfterApproval) }})
+                  </span>
+                </span>
               </div>
             </div>
-
-            <div class="margin-usage-row">
-              <span class="margin-usage-label">Payroll commitment</span>
-              <span class="margin-usage-value"
-                    [ngClass]="getPayrollCommitmentClass(selectedDetail()!.payrollSummary!.marginUsageAfterApproval)">
-                {{ selectedDetail()!.payrollSummary!.marginUsageAfterApproval | percent:'1.1-2' }}
-                            <span class="commitment-label-inline">
-                  ({{ getPayrollCommitmentLabel(selectedDetail()!.payrollSummary!.marginUsageAfterApproval) }})
-                </span>
-              </span>
-            </div>
-
           </div>
         }
 
-        <!-- CUSTOMER PAYMENT VIEW -->
+        <!-- PAYMENT SCHEDULE -->
         <div class="detail-card">
           <div class="detail-card-header">
             <span class="detail-card-title">Payment Schedule</span>
@@ -224,12 +228,9 @@
               <span class="payment-total-value">{{ selectedDetail()!.customerPaymentView.lastDueDate | date:'MMM d, y' }}</span>
             </div>
           </div>
-
           <div class="schedule-table">
             <div class="schedule-header">
-              <span>#</span>
-              <span>Due date</span>
-              <span>Amount</span>
+              <span>#</span><span>Due date</span><span>Amount</span>
             </div>
             @for (item of selectedDetail()!.customerPaymentView.paymentSchedule; track item.installmentNumber) {
               <div class="schedule-row">
@@ -241,15 +242,14 @@
           </div>
         </div>
 
-        <!-- BANK PROFITABILITY -->
+        <!-- PROFITABILITY ANALYSIS -->
         <div class="detail-card">
           <div class="detail-card-header">
             <span class="detail-card-title">Profitability Analysis</span>
-            <div class="detail-card-header">
-              <span class="profitability-badge" [ngClass]="getProfitabilityBadgeClass(selectedDetail()!.bankProfitabilityView.estimatedProfitMargin)">
-                {{ getProfitabilityBadgeText(selectedDetail()!.bankProfitabilityView.estimatedProfitMargin) }}
-              </span>
-            </div>
+            <span class="profitability-badge"
+                  [ngClass]="getProfitabilityBadgeClass(selectedDetail()!.bankProfitabilityView.estimatedProfitMargin)">
+              {{ getProfitabilityBadgeText(selectedDetail()!.bankProfitabilityView.estimatedProfitMargin) }}
+            </span>
           </div>
           <div class="profit-grid">
             <div class="profit-item positive">
@@ -305,38 +305,6 @@
             </div>
           </div>
         }
-
-        <!-- DECISION SUMMARY -->
-        <div class="decision-summary" [ngClass]="getDecisionSummaryClass(selectedDetail()!)">
-          <mat-icon>{{ selectedDetail()!.bankProfitabilityView.estimatedProfitMargin < 0 ? 'warning' :
-            selectedDetail()!.bankProfitabilityView.estimatedProfitMargin < 0.02 ? 'info' : 'check_circle' }}</mat-icon>
-          <span>{{ getDecisionSummary(selectedDetail()!) }}</span>
-        </div>
-
-        @if (getRiskDrivers(selectedDetail()!).length > 0) {
-          <div class="risk-drivers">
-            <span class="risk-drivers-title">Risk drivers</span>
-            <ul class="risk-drivers-list">
-              @for (driver of getRiskDrivers(selectedDetail()!); track driver) {
-                <li>{{ driver }}</li>
-              }
-            </ul>
-          </div>
-        }
-
-        <!-- ACTIONS -->
-        <div class="action-buttons">
-          <button mat-stroked-button class="reject-btn"
-                  (click)="openRejectDialog(selectedDetail()!.loanSummary.loanId, selectedDetail()!.loanSummary.amount)">
-            <mat-icon>close</mat-icon>
-            Reject
-          </button>
-          <button mat-flat-button class="approve-btn"
-                  (click)="approveLoan(selectedDetail()!.loanSummary.loanId)">
-            <mat-icon>check</mat-icon>
-            Approve loan
-          </button>
-        </div>
 
       </div>
     }

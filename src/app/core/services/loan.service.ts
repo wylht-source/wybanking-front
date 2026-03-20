@@ -7,6 +7,8 @@ import {
   RequestLoanRequest,
   RequestLoanResult,
   RejectLoanRequest,
+  RequestPayrollLoanRequest,
+  RequestPayrollLoanResult,
   LoanApprovalDetails,
 } from '../models/loan.model';
 import { PagedResult } from '../models/transaction.model';
@@ -19,6 +21,10 @@ export class LoanService {
 
   getApprovalDetails(id: string) {
     return this.http.get<LoanApprovalDetails>(`${this.base}/${id}/approval-details`);
+  }
+
+  requestPayrollLoan(request: RequestPayrollLoanRequest) {
+    return this.http.post<RequestPayrollLoanResult>(`${this.base}/request-payroll`, request);
   }
 
   requestLoan(request: RequestLoanRequest) {
@@ -51,5 +57,11 @@ export class LoanService {
 
   cancelLoan(id: string) {
     return this.http.post<void>(`${this.base}/${id}/cancel`, {});
+  }
+
+  getDecidedLoans(page = 1, pageSize = 20) {
+    return this.http.get<PagedResult<LoanSummary>>(`${this.base}/decided`, {
+      params: { page, pageSize },
+    });
   }
 }

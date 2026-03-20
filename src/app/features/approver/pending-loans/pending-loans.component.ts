@@ -161,9 +161,124 @@ export class PendingLoansComponent implements OnInit {
     }
   }
 
+  getMarginUsageClass(usage: number): string {
+    if (usage > 1) return 'usage-critical';
+    if (usage > 0.7) return 'usage-high';
+    if (usage > 0.4) return 'usage-medium';
+    return 'usage-low';
+  }
+
   getProfitMarginClass(margin: number): string {
     if (margin >= 0.1) return 'margin-high';
     if (margin >= 0.05) return 'margin-mid';
     return 'margin-low';
+  }
+  getProfitabilityStatus(margin: number): 'negative' | 'low' | 'good' {
+    if (margin < 0) return 'negative';
+    if (margin < 0.02) return 'low';
+    return 'good';
+  }
+
+  getProfitabilityBadgeClass(margin: number): string {
+    switch (this.getProfitabilityStatus(margin)) {
+      case 'negative':
+        return 'badge-negative';
+      case 'low':
+        return 'badge-low';
+      default:
+        return 'badge-good';
+    }
+  }
+
+  getProfitabilityBadgeText(margin: number): string {
+    const pct = (margin * 100).toFixed(2);
+    switch (this.getProfitabilityStatus(margin)) {
+      case 'negative':
+        return `Negative profitability (${pct}% margin)`;
+      case 'low':
+        return `Low profitability (${pct}% margin)`;
+      default:
+        return `Good profitability (${pct}% margin)`;
+    }
+  }
+
+  getPayrollCommitmentLevel(usage: number): 'low' | 'medium' | 'high' {
+    if (usage < 0.3) return 'low';
+    if (usage <= 0.6) return 'medium';
+    return 'high';
+  }
+
+  getPayrollCommitmentClass(usage: number): string {
+    switch (this.getPayrollCommitmentLevel(usage)) {
+      case 'low':
+        return 'commitment-low';
+      case 'medium':
+        return 'commitment-medium';
+      default:
+        return 'commitment-high';
+    }
+  }
+
+  getPayrollCommitmentLabel(usage: number): string {
+    const level = this.getPayrollCommitmentLevel(usage);
+    return level.charAt(0).toUpperCase() + level.slice(1);
+  }
+
+  getDecisionSummary(detail: LoanApprovalDetails): string {
+    const margin = detail.bankProfitabilityView.estimatedProfitMargin;
+    const profitStatus = this.getProfitabilityStatus(margin);
+    const payroll = detail.payrollSummary;
+
+    if (profitStatus === 'negative') {
+      if (payroll && this.getPayrollCommitmentLevel(payroll.marginUsageAfterApproval) === 'high') {
+        return 'Negative profitability and high payroll commitment — this loan is expected to generate a loss and poses significant risk.';
+      }
+      return 'Negative profitability — this loan is expected to generate a loss. Review carefully before approving.';
+    }
+
+    if (profitStatus === 'low') {
+      if (payroll && this.getPayrollCommitmentLevel(payroll.marginUsageAfterApproval) === 'high') {
+        return 'High payroll commitment and low profitability — approval should be carefully considered.';
+      }
+      return 'Low profitability margin — consider the risk before approving.';
+    }
+
+    if (payroll && this.getPayrollCommitmentLevel(payroll.marginUsageAfterApproval) === 'high') {
+      return 'Good profitability but high payroll commitment — monitor repayment capacity.';
+    }
+
+    return 'Healthy profitability and acceptable risk profile — loan appears viable for approval.';
+  }
+
+  getDecisionSummaryClass(detail: LoanApprovalDetails): string {
+    const margin = detail.bankProfitabilityView.estimatedProfitMargin;
+    const profitStatus = this.getProfitabilityStatus(margin);
+    const payroll = detail.payrollSummary;
+    const highPayroll =
+      payroll && this.getPayrollCommitmentLevel(payroll.marginUsageAfterApproval) === 'high';
+
+    if (profitStatus === 'negative') return 'summary-negative';
+    if (profitStatus === 'low' || highPayroll) return 'summary-warning';
+    return 'summary-positive';
+  }
+
+  getRiskDrivers(detail: LoanApprovalDetails): string[] {
+    const drivers: string[] = [];
+    const margin = detail.bankProfitabilityView.estimatedProfitMargin;
+    const payroll = detail.payrollSummary;
+
+    if (margin < 0) drivers.push('Negative profitability — loan generates a loss');
+    else if (margin < 0.02) drivers.push('Low profitability margin (' + (margin * 100).toFixed(2) + '%)');
+
+    if (payroll) {
+      const level = this.getPayrollCommitmentLevel(payroll.marginUsageAfterApproval);
+      if (level === 'high') drivers.push('High payroll commitment (' + (payroll.marginUsageAfterApproval * 100).toFixed(2) + '%)');
+      else if (level === 'medium') drivers.push('Medium payroll commitment (' + (payroll.marginUsageAfterApproval * 100).toFixed(2) + '%)');
+      if (payroll.remainingPayrollMargin < 0) drivers.push('Payroll margin exceeded after approval');
+    }
+
+    if (detail.loanSummary.amount >= 50000) drivers.push('High loan amount — requires careful review');
+
+    return drivers;
   }
 }

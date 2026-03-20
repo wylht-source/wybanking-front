@@ -8,6 +8,7 @@ export interface LoanSummary {
   status: LoanStatus;
   requiredApprovalRole: string;
   requestedAt: string;
+  loanType: LoanType;
 }
 
 export interface LoanDetail extends LoanSummary {
@@ -93,6 +94,7 @@ export interface LoanSummaryDetail {
   requestedAt: string;
   requiredApprovalRole: string;
   status: LoanStatus;
+  loanType: LoanType;
 }
 
 export interface LoanApprovalDetails {
@@ -100,4 +102,44 @@ export interface LoanApprovalDetails {
   customerPaymentView: CustomerPaymentView;
   bankProfitabilityView: BankProfitabilityView;
   workflowHistory: WorkflowHistoryItem[];
+  payrollSummary: PayrollSummary | null;
+}
+
+export type EmploymentStatus = 'Active' | 'Inactive' | 'OnLeave';
+export type LoanType = 'Personal' | 'Payroll';
+
+export interface RequestPayrollLoanRequest {
+  amount: number;
+  installments: number;
+  employerName: string;
+  monthlySalary: number;
+  employmentStatus: EmploymentStatus;
+  existingPayrollDeductions: number;
+}
+
+export interface RequestPayrollLoanResult {
+  loanId: string;
+  amount: number;
+  installments: number;
+  interestRate: number;
+  monthlyPayment: number;
+  requiredApprovalRole: string;
+  status: LoanStatus;
+  requestedAt: string;
+  payrollMarginLimit: number;
+  availablePayrollMargin: number;
+  remainingPayrollMargin: number;
+  marginUsageAfterApproval: number;
+}
+
+export interface PayrollSummary {
+  employerName: string;
+  monthlySalary: number;
+  employmentStatus: EmploymentStatus;
+  existingPayrollDeductions: number;
+  payrollMarginLimit: number;
+  availablePayrollMargin: number;
+  monthlyPayment: number;
+  remainingPayrollMargin: number;
+  marginUsageAfterApproval: number;
 }

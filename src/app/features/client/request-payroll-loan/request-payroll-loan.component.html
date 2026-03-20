@@ -1,0 +1,308 @@
+<div class="page">
+
+  <!-- FORM -->
+  @if (viewState() === 'form') {
+    <div class="page-header">
+      <h2>Payroll Loan</h2>
+      <span class="rate-badge">0.9% / month</span>
+    </div>
+
+    <div class="form-card">
+      <div class="loan-type-banner">
+        <mat-icon>account_balance</mat-icon>
+        <div>
+          <span class="banner-title">Lower rate than personal loan</span>
+          <span class="banner-sub">Payroll loans use your salary as guarantee — 0.9% vs 1.5% monthly</span>
+        </div>
+      </div>
+
+      <form [formGroup]="form">
+        <div class="section-label">Loan details</div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Loan amount (USD)</mat-label>
+          <input matInput formControlName="amount" type="number" min="1000" max="80000" step="100" />
+          @if (form.get('amount')?.hasError('min')) {
+            <mat-error>Minimum amount is $1,000</mat-error>
+          }
+          @if (form.get('amount')?.hasError('max')) {
+            <mat-error>Maximum amount is $80,000</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="installments-section">
+          <span class="field-label">Number of installments</span>
+          <div class="installments-row">
+            @for (opt of installmentOptions; track opt) {
+              <button
+                type="button"
+                class="installment-btn"
+                [class.selected]="selectedInstallments() === opt"
+                (click)="selectInstallments(opt)">
+                {{ opt }}
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (form.get('amount')?.value > 0) {
+          <div class="estimate-box">
+            <div class="estimate-row">
+              <span class="estimate-label">Monthly payment</span>
+              <span class="estimate-value">{{ estimatedMonthly() | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="estimate-row secondary">
+              <span class="estimate-label">Total payable</span>
+              <span class="estimate-value secondary">{{ estimatedTotal() | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="estimate-row secondary">
+              <span class="estimate-label">Total interest</span>
+              <span class="estimate-value secondary">{{ estimatedInterest() | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+          </div>
+        }
+
+        <div class="section-label" style="margin-top:16px">Employment information</div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Employer name</mat-label>
+          <input matInput formControlName="employerName" />
+          @if (form.get('employerName')?.hasError('required')) {
+            <mat-error>Employer name is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Monthly salary (USD)</mat-label>
+          <input matInput formControlName="monthlySalary" type="number" min="1" step="100" />
+          @if (form.get('monthlySalary')?.hasError('required')) {
+            <mat-error>Monthly salary is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Employment status</mat-label>
+          <mat-select formControlName="employmentStatus">
+            @for (opt of employmentStatusOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+
+        </mat-form-field>
+        @if (!isEmploymentActive() && form.get('employmentStatus')?.value) {
+          <div class="alert-error" style="margin-top: -4px">
+            <mat-icon>work_off</mat-icon>
+            Payroll loans are only available for active employees.
+          </div>
+        }
+
+
+        <mat-form-field appearance="outline">
+          <mat-label>Existing payroll deductions (USD)</mat-label>
+          <input matInput formControlName="existingPayrollDeductions" type="number" min="0" step="50" />
+          <mat-hint>Other loans or deductions already discounted from your salary</mat-hint>
+        </mat-form-field>
+
+        <!-- MARGIN INDICATOR -->
+        @if (form.get('monthlySalary')?.value > 0) {
+          <div class="margin-box" [class.margin-ok]="isMarginSufficient()" [class.margin-warn]="!isMarginSufficient()">
+            <div class="margin-row">
+              <span class="margin-label">Payroll margin limit (35%)</span>
+              <span class="margin-value">{{ payrollMarginLimit() | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="margin-row">
+              <span class="margin-label">Available margin</span>
+              <span class="margin-value">{{ availableMargin() | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            @if (form.get('amount')?.value > 0) {
+              <div class="margin-row highlight">
+                <span class="margin-label">Remaining after approval</span>
+                <span class="margin-value" [class.negative]="marginAfterApproval() < 0"
+                      [class.negative-large]="marginAfterApproval() < 0">
+          {{ marginAfterApproval() | currency:'USD':'symbol':'1.2-2' }}
+        </span>
+              </div>
+              <div class="margin-row">
+                <span class="margin-label">Payroll usage</span>
+                <span class="margin-value" [class.negative]="marginUsagePercent() > 100">
+          {{ marginUsagePercent() }}%
+        </span>
+              </div>
+              @if (!isMarginSufficient()) {
+                <div class="margin-warning">
+                  <mat-icon>warning</mat-icon>
+                  This loan cannot be approved as it exceeds your available payroll margin.
+                </div>
+                <div class="suggested-amount">
+                  <mat-icon>lightbulb</mat-icon>
+                  Suggested max loan for your margin:
+                  <strong>{{ suggestedMaxAmount() | currency:'USD':'symbol':'1.2-2' }}</strong>
+                </div>
+              }
+            }
+          </div>
+        }
+
+        @if (errorMessage()) {
+          <div class="alert-error">
+            <mat-icon>error</mat-icon>
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <button mat-flat-button class="submit-btn" (click)="goToReview()"
+                [disabled]="form.invalid || !isMarginSufficient() || !isEmploymentActive()">
+          <ng-container>
+            <mat-icon>arrow_forward</mat-icon>
+            Review request
+          </ng-container>
+        </button>
+      </form>
+    </div>
+  }
+
+  <!-- REVIEW -->
+  @if (viewState() === 'review') {
+    <div class="page-header">
+      <h2>Review your payroll loan</h2>
+    </div>
+
+    <div class="review-card">
+      <p class="review-subtitle">Please review all details carefully before submitting.</p>
+
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="result-label">Amount</span>
+          <span class="result-value">{{ form.value.amount | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Installments</span>
+          <span class="result-value">{{ selectedInstallments() }} installments</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Interest rate</span>
+          <span class="result-value">0.9% / month</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Employer</span>
+          <span class="result-value">{{ form.value.employerName }}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Monthly salary</span>
+          <span class="result-value">{{ form.value.monthlySalary | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Employment status</span>
+          <span class="result-value">{{ form.value.employmentStatus }}</span>
+        </div>
+      </div>
+
+      <div class="summary-box">
+        <div class="summary-title">Payment summary</div>
+        <div class="summary-row highlight">
+          <span class="summary-label">Monthly payment</span>
+          <span class="summary-value main">{{ estimatedMonthly() | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Total payable</span>
+          <span class="summary-value">{{ estimatedTotal() | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Total interest</span>
+          <span class="summary-value">{{ estimatedInterest() | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Available payroll margin</span>
+          <span class="summary-value">{{ availableMargin() | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Remaining after approval</span>
+          <span class="summary-value" [class.negative-value]="marginAfterApproval() < 0">
+            {{ marginAfterApproval() | currency:'USD':'symbol':'1.2-2' }}
+          </span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Margin usage</span>
+          <span class="summary-value">{{ marginUsage() | percent:'1.1-2' }}</span>
+        </div>
+      </div>
+
+      <div class="commitment-row">
+        <mat-icon>calendar_month</mat-icon>
+        Estimated monthly commitment:
+        <strong>{{ estimatedMonthly() | currency:'USD':'symbol':'1.2-2' }}</strong>
+      </div>
+
+      <p class="trust-message">You can cancel your request while it is pending approval.</p>
+
+      @if (errorMessage()) {
+        <div class="alert-error">
+          <mat-icon>error</mat-icon>
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <div class="review-actions">
+        <button mat-stroked-button class="back-btn" (click)="backToForm()" [disabled]="submitting()">
+          <ng-container>
+            <mat-icon>arrow_back</mat-icon>
+            Edit
+          </ng-container>
+        </button>
+        <button mat-flat-button class="confirm-btn" (click)="onSubmit()" [disabled]="submitting()">
+          @if (submitting()) {
+            <mat-spinner diameter="18" />
+          } @else {
+            <ng-container>
+              <mat-icon>check</mat-icon>
+              Confirm and request loan
+            </ng-container>
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- SUCCESS -->
+  @if (viewState() === 'success') {
+    <div class="success-card">
+      <div class="success-icon">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <h3>Payroll loan requested!</h3>
+      <p>Your request is under review. You will be notified once a decision is made.</p>
+
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="result-label">Amount</span>
+          <span class="result-value">{{ result()!.amount | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Installments</span>
+          <span class="result-value">{{ result()!.installments }} installments</span>
+        </div>
+        <div class="result-item highlight-item">
+          <span class="result-label">Monthly payment</span>
+          <span class="result-value main">{{ result()!.monthlyPayment | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Remaining margin</span>
+          <span class="result-value">{{ result()!.remainingPayrollMargin | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Margin usage</span>
+          <span class="result-value">{{ result()!.marginUsageAfterApproval | percent:'1.1-2' }}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Status</span>
+          <span class="status-badge">{{ result()!.status }}</span>
+        </div>
+      </div>
+
+      <button mat-flat-button class="new-btn" (click)="newRequest()">
+        Request another loan
+      </button>
+    </div>
+  }
+
+</div>

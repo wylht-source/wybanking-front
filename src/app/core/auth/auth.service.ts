@@ -67,11 +67,20 @@ export class AuthService {
   private decodeToken(token: string): AuthUser | null {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      const rolesClaim = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
+      // pode vir como string (uma role) ou array (múltiplas roles)
+      const roles: string[] = Array.isArray(rolesClaim) ? rolesClaim : [rolesClaim];
+
+      // pega a role mais privilegiada
+      const rolePriority = ['CreditCommittee', 'Supervisor', 'Manager', 'Client'];
+      const role = rolePriority.find((r) => roles.includes(r)) ?? 'Client';
+
       return {
         userId: payload['sub'],
         email: payload['email'],
         name: payload['name'] ?? payload['email']?.split('@')[0],
-        role: payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+        role: role as AuthUser['role'],
       };
     } catch {
       return null;
