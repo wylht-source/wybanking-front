@@ -1,0 +1,271 @@
+<div class="page">
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <mat-icon>check_circle</mat-icon>
+      {{ successMessage() }}
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-error">
+      <mat-icon>error</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- LIST VIEW -->
+  @if (viewState() === 'list') {
+    <div class="page-header">
+      <h2>Pending Approvals</h2>
+      <span class="count-pill">{{ totalCount() }} pending</span>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-state"><mat-spinner diameter="40" /></div>
+    } @else if (loans().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon"><mat-icon>pending_actions</mat-icon></div>
+        <h3>No pending loans</h3>
+        <p>All caught up! There are no loans awaiting your approval.</p>
+      </div>
+    } @else {
+      <div class="loan-list">
+        @for (loan of loans(); track loan.loanId) {
+          <div class="loan-card clickable" (click)="openDetail(loan)">
+            <div class="loan-top">
+              <div>
+                <div class="loan-amount">{{ loan.amount | currency:'USD':'symbol':'1.2-2' }}</div>
+                <div class="loan-sub">{{ loan.installments }}x {{ loan.monthlyPayment | currency:'USD':'symbol':'1.2-2' }} / month</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="role-badge">{{ loan.requiredApprovalRole }}</span>
+                <mat-icon style="color:#9ca3af;font-size:18px">chevron_right</mat-icon>
+              </div>
+            </div>
+            <div class="loan-details">
+              <div class="detail-item">
+                <span class="detail-label">Requested at</span>
+                <span class="detail-value">{{ loan.requestedAt | date:'MMM d, y · HH:mm' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Installments</span>
+                <span class="detail-value">{{ loan.installments }}x</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Monthly payment</span>
+                <span class="detail-value">{{ loan.monthlyPayment | currency:'USD':'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="pagination">
+        <button mat-icon-button [disabled]="page() === 1" (click)="prevPage()">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <span class="page-info">Page {{ page() }}</span>
+        <button mat-icon-button [disabled]="!hasNextPage" (click)="nextPage()">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    }
+  }
+
+  <!-- DETAIL VIEW -->
+  @if (viewState() === 'detail') {
+    <div class="page-header">
+      <button mat-icon-button (click)="backToList()" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h2>Loan Details</h2>
+    </div>
+
+    @if (detailLoading()) {
+      <div class="loading-state"><mat-spinner diameter="40" /></div>
+    } @else if (selectedDetail()) {
+      <div class="detail-sections">
+
+        <!-- LOAN SUMMARY -->
+        <div class="detail-card">
+          <div class="detail-card-header">
+            <span class="detail-card-title">Loan Summary</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="risk-badge" [ngClass]="getRiskClass(selectedDetail()!.loanSummary.requiredApprovalRole)">
+                {{ getRiskLabel(selectedDetail()!.loanSummary.requiredApprovalRole) }}
+              </span>
+              <span class="role-badge">{{ selectedDetail()!.loanSummary.requiredApprovalRole }}</span>
+            </div>
+          </div>
+          <div class="summary-amount">
+            {{ selectedDetail()!.loanSummary.amount | currency:'USD':'symbol':'1.2-2' }}
+          </div>
+          <div class="summary-sub">
+            {{ selectedDetail()!.loanSummary.installments }}x
+            {{ selectedDetail()!.loanSummary.monthlyPayment | currency:'USD':'symbol':'1.2-2' }} / month
+          </div>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Client</span>
+              <span class="info-value">{{ selectedDetail()!.loanSummary.clientDisplayName }}</span>
+              <span class="info-sub">ID: {{ selectedDetail()!.loanSummary.clientId }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Monthly rate</span>
+              <span class="info-value">{{ selectedDetail()!.loanSummary.interestRateMonthly | percent:'1.1-2' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Requested at</span>
+              <span class="info-value">{{ selectedDetail()!.loanSummary.requestedAt | date:'MMM d, y' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Status</span>
+              <span class="badge badge-pending">{{ selectedDetail()!.loanSummary.status }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CUSTOMER PAYMENT VIEW -->
+        <div class="detail-card">
+          <div class="detail-card-header">
+            <span class="detail-card-title">Payment Schedule</span>
+            @if (selectedDetail()!.customerPaymentView.isEstimated) {
+              <span class="estimated-badge">Estimated</span>
+            }
+          </div>
+          <div class="payment-totals">
+            <div class="payment-total-item">
+              <span class="payment-total-label">Total payable</span>
+              <span class="payment-total-value">{{ selectedDetail()!.customerPaymentView.totalPayable | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="payment-total-item">
+              <span class="payment-total-label">Total interest</span>
+              <span class="payment-total-value interest">{{ selectedDetail()!.customerPaymentView.totalInterestCharged | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="payment-total-item">
+              <span class="payment-total-label">First due date</span>
+              <span class="payment-total-value">{{ selectedDetail()!.customerPaymentView.firstDueDate | date:'MMM d, y' }}</span>
+            </div>
+            <div class="payment-total-item">
+              <span class="payment-total-label">Last due date</span>
+              <span class="payment-total-value">{{ selectedDetail()!.customerPaymentView.lastDueDate | date:'MMM d, y' }}</span>
+            </div>
+          </div>
+
+          <div class="schedule-table">
+            <div class="schedule-header">
+              <span>#</span>
+              <span>Due date</span>
+              <span>Amount</span>
+            </div>
+            @for (item of selectedDetail()!.customerPaymentView.paymentSchedule; track item.installmentNumber) {
+              <div class="schedule-row">
+                <span class="schedule-num">{{ item.installmentNumber }}</span>
+                <span>{{ item.dueDate | date:'MMM d, y' }}</span>
+                <span class="schedule-amount">{{ item.paymentAmount | currency:'USD':'symbol':'1.2-2' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- BANK PROFITABILITY -->
+        <div class="detail-card">
+          <div class="detail-card-header">
+            <span class="detail-card-title">Bank Profitability</span>
+            <span class="profit-margin" [ngClass]="getProfitMarginClass(selectedDetail()!.bankProfitabilityView.estimatedProfitMargin)">
+              <mat-icon>{{ selectedDetail()!.bankProfitabilityView.estimatedProfitMargin < 0 ? 'warning' : 'trending_up' }}</mat-icon>
+              {{ selectedDetail()!.bankProfitabilityView.estimatedProfitMargin < 0 ? '⚠ Negative' : '' }}
+              {{ selectedDetail()!.bankProfitabilityView.estimatedProfitMargin | percent:'1.1-2' }} margin
+            </span>
+          </div>
+          <div class="profit-grid">
+            <div class="profit-item positive">
+              <span class="profit-label">Gross interest revenue</span>
+              <span class="profit-value">{{ selectedDetail()!.bankProfitabilityView.grossInterestRevenue | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="profit-item negative">
+              <span class="profit-label">Estimated funding cost</span>
+              <span class="profit-value">− {{ selectedDetail()!.bankProfitabilityView.estimatedFundingCost | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="profit-item negative">
+              <span class="profit-label">Expected credit loss</span>
+              <span class="profit-value">− {{ selectedDetail()!.bankProfitabilityView.expectedCreditLoss | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="profit-item negative">
+              <span class="profit-label">Operational cost</span>
+              <span class="profit-value">− {{ selectedDetail()!.bankProfitabilityView.estimatedOperationalCost | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="profit-item negative">
+              <span class="profit-label">Capital charge</span>
+              <span class="profit-value">− {{ selectedDetail()!.bankProfitabilityView.estimatedCapitalCharge | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="profit-item net">
+              <span class="profit-label">Estimated net profit</span>
+              <span class="profit-value net-value">
+                {{ selectedDetail()!.bankProfitabilityView.estimatedNetProfit | currency:'USD':'symbol':'1.2-2' }}
+              </span>
+            </div>
+            @if (selectedDetail()!.bankProfitabilityView.estimatedProfitMargin < 0) {
+              <div class="profit-insight negative-insight">
+                <mat-icon>warning</mat-icon>
+                This loan is expected to generate a negative return. Review carefully before approving.
+              </div>
+            } @else if (selectedDetail()!.bankProfitabilityView.estimatedProfitMargin < 0.05) {
+              <div class="profit-insight low-insight">
+                <mat-icon>info</mat-icon>
+                Low profitability — review before approving.
+              </div>
+            } @else {
+              <div class="profit-insight positive-insight">
+                <mat-icon>check_circle</mat-icon>
+                Healthy profitability for this loan.
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- WORKFLOW HISTORY -->
+        @if (selectedDetail()!.workflowHistory.length > 0) {
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <span class="detail-card-title">Workflow History</span>
+            </div>
+            <div class="workflow-list">
+              @for (item of selectedDetail()!.workflowHistory; track item.performedAt) {
+                <div class="workflow-item">
+                  <div class="workflow-dot" [ngClass]="'dot-' + item.action.toLowerCase()"></div>
+                  <div class="workflow-info">
+                    <div class="workflow-action">{{ item.action }}
+                      <span class="workflow-role">by {{ item.performedByRole }}</span>
+                    </div>
+                    <div class="workflow-date">{{ item.performedAt | date:'MMM d, y · HH:mm' }}</div>
+                    @if (item.comment) {
+                      <div class="workflow-comment">"{{ item.comment }}"</div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ACTIONS -->
+        <div class="action-buttons">
+          <button mat-stroked-button class="reject-btn"
+                  (click)="openRejectDialog(selectedDetail()!.loanSummary.loanId, selectedDetail()!.loanSummary.amount)">
+            <mat-icon>close</mat-icon>
+            Reject
+          </button>
+          <button mat-flat-button class="approve-btn"
+                  (click)="approveLoan(selectedDetail()!.loanSummary.loanId)">
+            <mat-icon>check</mat-icon>
+            Approve loan
+          </button>
+        </div>
+
+      </div>
+    }
+  }
+
+</div>

@@ -1,0 +1,111 @@
+<div class="dashboard">
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (!account()) {
+    <div class="empty-state">
+      <div class="empty-icon">
+        <mat-icon>account_balance</mat-icon>
+      </div>
+      <h2>No account yet</h2>
+      <p>Create your banking account to get started.</p>
+      @if (errorMessage()) {
+        <div class="error-banner">{{ errorMessage() }}</div>
+      }
+      <button
+        mat-flat-button
+        class="create-btn"
+        (click)="createAccount()"
+        [disabled]="creatingAccount()">
+        @if (creatingAccount()) {
+          <mat-spinner diameter="18" />
+        } @else {
+          Create account
+        }
+      </button>
+    </div>
+  } @else {
+    <div class="page-header">
+      <span class="greeting">Welcome back, {{ user()?.name }} 👋</span>
+      <span class="date">{{ account()!.accountNumber }}</span>
+    </div>
+
+    <!-- Balance card -->
+    <div class="balance-card">
+      <div class="balance-top">
+        <div>
+          <span class="balance-label">Available balance</span>
+        </div>
+        <button class="toggle-btn" (click)="toggleBalance()">
+          <mat-icon>{{ balanceVisible() ? 'visibility' : 'visibility_off' }}</mat-icon>
+          {{ balanceVisible() ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+      <div class="balance-amount">
+        {{ balanceVisible() ? (account()!.balance | currency:'USD':'symbol':'1.2-2') : '••••••' }}
+      </div>
+      <div class="balance-sub">{{ account()!.ownerName }}</div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="section-title">Quick actions</div>
+    <div class="actions-row">
+      <button class="action-btn" (click)="navigateTo('/transfer', 2)">
+        <div class="action-icon">
+          <mat-icon>swap_vert</mat-icon>
+        </div>
+        <span>Transfer</span>
+      </button>
+      <button class="action-btn" (click)="navigateTo('/transfer', 0)">
+        <div class="action-icon">
+          <mat-icon>arrow_downward</mat-icon>
+        </div>
+        <span>Deposit</span>
+      </button>
+      <button class="action-btn" (click)="navigateTo('/transfer', 1)">
+        <div class="action-icon">
+          <mat-icon>arrow_upward</mat-icon>
+        </div>
+        <span>Withdraw</span>
+      </button>
+      <button class="action-btn" (click)="navigateTo('/request-loan')">
+        <div class="action-icon">
+          <mat-icon>credit_score</mat-icon>
+        </div>
+        <span>Loan</span>
+      </button>
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="section-header">
+      <span class="section-title">Recent transactions</span>
+      <a routerLink="/my-loans" class="see-all">See all</a>
+    </div>
+
+    @if (transactions().length === 0) {
+      <div class="no-transactions">
+        <mat-icon>receipt_long</mat-icon>
+        <span>No transactions yet</span>
+      </div>
+    } @else {
+      <div class="transaction-list">
+        @for (tx of transactions(); track tx.id) {
+          <div class="tx-item">
+            <div class="tx-icon" [ngClass]="getTransactionClass(tx.type)">
+              <mat-icon>{{ getTransactionIcon(tx.type) }}</mat-icon>
+            </div>
+            <div class="tx-info">
+              <span class="tx-desc">{{ tx.description || tx.type }}</span>
+              <span class="tx-date">{{ tx.createdAt | date:'MMM d, y · HH:mm' }}</span>
+            </div>
+            <div class="tx-amount" [class.positive]="isPositive(tx.type)">
+              {{ isPositive(tx.type) ? '+' : '-' }}{{ tx.amount | currency:'USD':'symbol':'1.2-2' }}
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

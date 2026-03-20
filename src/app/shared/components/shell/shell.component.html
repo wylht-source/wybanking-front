@@ -1,0 +1,74 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">W</div>
+      <span class="logo-name">wybanking</span>
+    </div>
+
+    <nav class="nav">
+      @if (isClient()) {
+        <span class="nav-section">Main</span>
+
+        <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
+          <mat-icon>dashboard</mat-icon>
+          Dashboard
+        </a>
+
+        <span class="nav-section">Transactions</span>
+
+        <a class="nav-item" routerLink="/transfer" [queryParams]="{tab: 0}" routerLinkActive="active">
+          <mat-icon>arrow_downward</mat-icon>
+          Deposit
+        </a>
+
+        <a class="nav-item" routerLink="/transfer" [queryParams]="{tab: 1}" routerLinkActive="active">
+          <mat-icon>arrow_upward</mat-icon>
+          Withdraw
+        </a>
+
+        <a class="nav-item" routerLink="/transfer" [queryParams]="{tab: 2}" routerLinkActive="active">
+          <mat-icon>swap_horiz</mat-icon>
+          Transfer
+        </a>
+
+        <span class="nav-section">Credit</span>
+
+        <a class="nav-item" routerLink="/request-loan" routerLinkActive="active">
+          <mat-icon>credit_score</mat-icon>
+          Request Loan
+        </a>
+
+        <a class="nav-item" routerLink="/my-loans" routerLinkActive="active">
+          <mat-icon>list_alt</mat-icon>
+          My Loans
+        </a>
+      }
+
+      @if (isApprover()) {
+        <span class="nav-section">Approvals</span>
+
+        <a class="nav-item" routerLink="/pending-loans" routerLinkActive="active">
+          <mat-icon>pending_actions</mat-icon>
+          Pending Loans
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar">{{ initials() }}</div>
+        <div class="user-details">
+          <span class="user-name">{{ user()?.name }}</span>
+          <span class="user-role">{{ user()?.role }}</span>
+        </div>
+      </div>
+      <button mat-icon-button (click)="logout()" class="logout-btn" title="Sign out">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <router-outlet />
+  </main>
+</div>

@@ -1,0 +1,72 @@
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="logo-icon">
+        <span class="logo-symbol">W</span>
+      </div>
+      <h1>wybanking</h1>
+      <p>Create your account</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline">
+        <mat-label>Full name</mat-label>
+        <input matInput formControlName="name" type="text" autocomplete="name" />
+        @if (form.get('name')?.hasError('minlength')) {
+          <mat-error>Name must be at least 3 characters</mat-error>
+        }
+        @if (form.get('name')?.hasError('required')) {
+          <mat-error>Name is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" autocomplete="email" />
+        @if (form.get('email')?.hasError('email')) {
+          <mat-error>Enter a valid email address</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" type="password" autocomplete="new-password" />
+        @if (form.get('password')?.hasError('minlength')) {
+          <mat-error>Password must be at least 6 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Confirm password</mat-label>
+        <input matInput formControlName="confirmPassword" type="password" autocomplete="new-password" />
+        @if (form.hasError('passwordMismatch') && form.get('confirmPassword')?.touched) {
+          <mat-error>Passwords do not match</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMessage) {
+        <div class="error-banner">{{ errorMessage }}</div>
+      }
+      @if (successMessage) {
+        <div class="success-banner">{{ successMessage }}</div>
+      }
+
+      <button
+        mat-flat-button
+        type="submit"
+        [disabled]="form.invalid || loading"
+        class="submit-btn">
+        @if (loading) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Create account
+        }
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Already have an account?
+      <a routerLink="/login">Sign in</a>
+    </p>
+  </div>
+</div>

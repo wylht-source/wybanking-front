@@ -1,0 +1,82 @@
+<div class="page">
+  <div class="page-header">
+    <h2>My Loans</h2>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert-error">
+      <mat-icon>error</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (loans().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">
+        <mat-icon>list_alt</mat-icon>
+      </div>
+      <h3>No loans yet</h3>
+      <p>You haven't requested any loans yet.</p>
+    </div>
+  } @else {
+    <div class="loan-list">
+      @for (loan of loans(); track loan.loanId) {
+        <div class="loan-card">
+          <div class="loan-top">
+            <div class="loan-amount">
+              {{ loan.amount | currency:'USD':'symbol':'1.2-2' }}
+            </div>
+            <span class="badge" [ngClass]="getStatusClass(loan.status)">
+              {{ loan.status }}
+            </span>
+          </div>
+
+          <div class="loan-details">
+            <div class="detail-item">
+              <span class="detail-label">Installments</span>
+              <span class="detail-value">{{ loan.installments }}x {{ loan.monthlyPayment | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Required approval</span>
+              <span class="detail-value">{{ loan.requiredApprovalRole }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Requested at</span>
+              <span class="detail-value">{{ loan.requestedAt | date:'MMM d, y' }}</span>
+            </div>
+          </div>
+
+          @if (loan.status === 'PendingApproval') {
+            <button
+              mat-stroked-button
+              class="cancel-btn"
+              (click)="confirmCancel(loan)">
+              <mat-icon>cancel</mat-icon>
+              Cancel request
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="pagination">
+      <button
+        mat-icon-button
+        [disabled]="page() === 1"
+        (click)="prevPage()">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span class="page-info">Page {{ page() }}</span>
+      <button
+        mat-icon-button
+        [disabled]="!hasNextPage"
+        (click)="nextPage()">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  }
+</div>
