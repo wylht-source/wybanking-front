@@ -58,7 +58,11 @@ export class DashboardComponent implements OnInit {
         this.transactions.set(result.items);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.loading.set(false);
+        // não bloqueia o dashboard, só loga silenciosamente
+        console.warn('Failed to load statement');
+      },
     });
   }
 
@@ -72,6 +76,7 @@ export class DashboardComponent implements OnInit {
         this.account.set(account);
         this.creatingAccount.set(false);
         this.loading.set(false);
+        this.loadStatement(account.id); // adiciona essa linha
       },
       error: () => {
         this.errorMessage.set('Failed to create account. Please try again.');

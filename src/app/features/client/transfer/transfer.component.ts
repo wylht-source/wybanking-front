@@ -49,6 +49,7 @@ export class TransferComponent implements OnInit {
   receipt = signal<Receipt | null>(null);
   pendingOperation = signal<{ type: OperationType; form: FormGroup } | null>(null);
   selectedTab = signal(0);
+  errorMessage = signal('');
 
   depositForm: FormGroup;
   withdrawForm: FormGroup;
@@ -81,6 +82,7 @@ export class TransferComponent implements OnInit {
   ngOnInit() {
     this.accountService.getMyAccount().subscribe({
       next: (account) => this.account.set(account),
+      error: () => this.errorMessage.set('Failed to load account. Please try again.'),
     });
 
     this.route.queryParams.subscribe((params) => {
@@ -88,8 +90,6 @@ export class TransferComponent implements OnInit {
       if (tab !== undefined) this.selectedTab.set(+tab);
     });
   }
-
-
 
   requestConfirm(type: OperationType) {
     const form = this.getForm(type);
@@ -108,7 +108,7 @@ export class TransferComponent implements OnInit {
 
   confirm() {
     const op = this.pendingOperation();
-    if (!op) return;
+    if (!op || !this.account()) return;
     this.loading.set(true);
 
     switch (op.type) {
