@@ -37,7 +37,7 @@ describe('ShellComponent', () => {
 
     expect(component.isClient()).toBe(true);
     expect(component.isApprover()).toBe(false);
-    expect(component.initials()).toBe('SE');
+    expect(component.initials()).toBe('SJ');
   });
 
   it('identifies approver roles and excludes client navigation', () => {
@@ -52,7 +52,7 @@ describe('ShellComponent', () => {
 
     expect(component.isClient()).toBe(false);
     expect(component.isApprover()).toBe(true);
-    expect(component.initials()).toBe('MA');
+    expect(component.initials()).toBe('MS');
   });
 
   it('renders client navigation items for client users', () => {
