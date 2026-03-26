@@ -306,6 +306,8 @@
           </div>
         }
 
+
+
         <!-- DECISION SUMMARY -->
         <div class="decision-summary" [ngClass]="getDecisionSummaryClass(selectedDetail()!)">
           <mat-icon>{{ selectedDetail()!.bankProfitabilityView.estimatedProfitMargin < 0 ? 'warning' :
@@ -323,6 +325,51 @@
             </ul>
           </div>
         }
+
+        <!-- AI ANALYSIS STATUS -->
+        @if (selectedDetail()!.loanSummary.aiAnalysisStatus !== 'NotRequested') {
+          <div class="ai-card" [ngClass]="getAiCardClass(selectedDetail()!.loanSummary.aiAnalysisStatus)">
+            <div class="ai-card-header">
+              <div class="ai-icon">
+                <mat-icon>{{ getAiIcon(selectedDetail()!.loanSummary.aiAnalysisStatus) }}</mat-icon>
+              </div>
+              <span class="ai-title">AI Risk Assessment</span>
+              <span class="ai-badge" [ngClass]="getAiBadgeClass(selectedDetail()!.loanSummary.aiAnalysisStatus)">
+        {{ getAiStatusLabel(selectedDetail()!.loanSummary.aiAnalysisStatus) }}
+      </span>
+            </div>
+
+            @if (selectedDetail()!.loanSummary.aiAnalysisStatus === 'Failed') {
+              @if (selectedDetail()!.loanSummary.aiAnalysisRequestedAt) {
+                <p class="ai-last-attempt">
+                  Last attempt: {{ selectedDetail()!.loanSummary.aiAnalysisRequestedAt | date:'MMM d, y HH:mm' }}
+                </p>
+              }
+              <p class="ai-message">{{ getAiMessage(selectedDetail()!.loanSummary.aiAnalysisStatus) }}</p>
+              <button mat-stroked-button class="ai-retry-btn"
+                      (click)="retryAiAnalysis(selectedDetail()!.loanSummary.loanId)"
+                      [disabled]="aiRetrying() || aiRetryCooldown() > 0">
+                @if (aiRetrying()) {
+                  <mat-spinner diameter="14" />
+                } @else if (aiRetryCooldown() > 0) {
+                  <ng-container>
+                    <mat-icon>timer</mat-icon>
+                    Retry AI Analysis ({{ aiRetryCooldown() }}s)
+                  </ng-container>
+                } @else {
+                  <ng-container>
+                    <mat-icon>refresh</mat-icon>
+                    Retry AI Analysis
+                  </ng-container>
+                }
+              </button>
+            } @else {
+              <p class="ai-message">{{ getAiMessage(selectedDetail()!.loanSummary.aiAnalysisStatus) }}</p>
+            }
+
+          </div>
+        }
+
 
         <!-- ACTIONS -->
         <div class="action-buttons">

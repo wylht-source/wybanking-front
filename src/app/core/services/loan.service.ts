@@ -12,6 +12,7 @@ import {
   LoanApprovalDetails,
 } from '../models/loan.model';
 import { PagedResult } from '../models/transaction.model';
+import { AiAnalysisStatus } from '../models/loan.model';
 
 @Injectable({ providedIn: 'root' })
 export class LoanService {
@@ -63,5 +64,11 @@ export class LoanService {
     return this.http.get<PagedResult<LoanSummary>>(`${this.base}/decided`, {
       params: { page, pageSize },
     });
+  }
+  retryAiAnalysis(id: string) {
+    return this.http.post<{ loanId: string; aiAnalysisStatus: AiAnalysisStatus }>(
+      `${this.base}/${id}/retry-ai-analysis`,
+      {},
+    );
   }
 }

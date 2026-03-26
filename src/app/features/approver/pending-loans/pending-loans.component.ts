@@ -5,8 +5,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { LoanService } from '../../../core/services/loan.service';
-import { LoanSummary, LoanApprovalDetails } from '../../../core/models/loan.model';
+import { AiAnalysisStatus, LoanSummary, LoanApprovalDetails } from '../../../core/models/loan.model';
 import { RejectLoanDialogComponent } from './reject-loan-dialog.component';
+
 
 type ViewState = 'list' | 'detail';
 
@@ -34,6 +35,7 @@ export class PendingLoansComponent implements OnInit {
   page = signal(1);
   totalCount = signal(0);
   readonly pageSize = 10;
+  aiRetrying = signal(false);
 
   constructor(
     private loanService: LoanService,
@@ -42,6 +44,57 @@ export class PendingLoansComponent implements OnInit {
 
   ngOnInit() {
     this.loadLoans();
+  }
+  aiRetryCooldown = signal(0);
+
+  retryAiAnalysis(loanId: string) {
+    this.aiRetrying.set(true);
+    this.loanService.retryAiAnalysis(loanId).subscribe({
+      next: (result) => {
+        this.selectedDetail.update((d) =>
+          d
+            ? {
+                ...d,
+                loanSummary: {
+                  ...d.loanSummary,
+                  aiAnalysisStatus: result.aiAnalysisStatus,
+                  aiAnalysisRequestedAt: new Date().toISOString(),
+                },
+              }
+            : d,
+        );
+        this.aiRetrying.set(false);
+        this.startCooldown();
+      },
+      error: () => {
+        this.selectedDetail.update((d) =>
+          d
+            ? {
+                ...d,
+                loanSummary: {
+                  ...d.loanSummary,
+                  aiAnalysisRequestedAt: new Date().toISOString(),
+                },
+              }
+            : d,
+        );
+        this.aiRetrying.set(false);
+        this.startCooldown();
+      },
+    });
+  }
+
+  private startCooldown() {
+    this.aiRetryCooldown.set(10);
+    const interval = setInterval(() => {
+      this.aiRetryCooldown.update((v) => {
+        if (v <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
   }
 
   loadLoans() {
@@ -268,17 +321,99 @@ export class PendingLoansComponent implements OnInit {
     const payroll = detail.payrollSummary;
 
     if (margin < 0) drivers.push('Negative profitability — loan generates a loss');
-    else if (margin < 0.02) drivers.push('Low profitability margin (' + (margin * 100).toFixed(2) + '%)');
+    else if (margin < 0.02)
+      drivers.push('Low profitability margin (' + (margin * 100).toFixed(2) + '%)');
 
     if (payroll) {
       const level = this.getPayrollCommitmentLevel(payroll.marginUsageAfterApproval);
-      if (level === 'high') drivers.push('High payroll commitment (' + (payroll.marginUsageAfterApproval * 100).toFixed(2) + '%)');
-      else if (level === 'medium') drivers.push('Medium payroll commitment (' + (payroll.marginUsageAfterApproval * 100).toFixed(2) + '%)');
-      if (payroll.remainingPayrollMargin < 0) drivers.push('Payroll margin exceeded after approval');
+      if (level === 'high')
+        drivers.push(
+          'High payroll commitment (' + (payroll.marginUsageAfterApproval * 100).toFixed(2) + '%)',
+        );
+      else if (level === 'medium')
+        drivers.push(
+          'Medium payroll commitment (' +
+            (payroll.marginUsageAfterApproval * 100).toFixed(2) +
+            '%)',
+        );
+      if (payroll.remainingPayrollMargin < 0)
+        drivers.push('Payroll margin exceeded after approval');
     }
 
-    if (detail.loanSummary.amount >= 50000) drivers.push('High loan amount — requires careful review');
+    if (detail.loanSummary.amount >= 50000)
+      drivers.push('High loan amount — requires careful review');
 
     return drivers;
+  }
+
+  getAiCardClass(status: AiAnalysisStatus): string {
+    switch (status) {
+      case 'Pending':
+      case 'Processing':
+        return 'ai-card-pending';
+      case 'Completed':
+        return 'ai-card-completed';
+      case 'Failed':
+        return 'ai-card-failed';
+      default:
+        return '';
+    }
+  }
+
+  getAiBadgeClass(status: AiAnalysisStatus): string {
+    switch (status) {
+      case 'Pending':
+      case 'Processing':
+        return 'ai-badge-pending';
+      case 'Completed':
+        return 'ai-badge-completed';
+      case 'Failed':
+        return 'ai-badge-failed';
+      default:
+        return '';
+    }
+  }
+
+  getAiIcon(status: AiAnalysisStatus): string {
+    switch (status) {
+      case 'Pending':
+      case 'Processing':
+        return 'hourglass_empty';
+      case 'Completed':
+        return 'check_circle';
+      case 'Failed':
+        return 'cloud_off';
+      default:
+        return 'info';
+    }
+  }
+
+  getAiStatusLabel(status: AiAnalysisStatus): string {
+    switch (status) {
+      case 'Pending':
+        return 'Pending';
+      case 'Processing':
+        return 'Processing';
+      case 'Completed':
+        return 'Completed';
+      case 'Failed':
+        return 'Temporarily unavailable';
+      default:
+        return '';
+    }
+  }
+
+  getAiMessage(status: AiAnalysisStatus): string {
+    switch (status) {
+      case 'Pending':
+      case 'Processing':
+        return 'AI risk analysis in progress. This may take a few moments.';
+      case 'Completed':
+        return 'AI risk analysis completed. Results available below.';
+      case 'Failed':
+        return 'AI risk analysis unavailable. The loan workflow is still available, but AI insights could not be generated at this time.';
+      default:
+        return '';
+    }
   }
 }

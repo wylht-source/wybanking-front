@@ -1,4 +1,5 @@
 export type LoanStatus = 'PendingApproval' | 'Approved' | 'Rejected' | 'Cancelled';
+export type AiAnalysisStatus = 'NotRequested' | 'Pending' | 'Processing' | 'Completed' | 'Failed';
 
 export interface LoanSummary {
   loanId: string;
@@ -42,6 +43,7 @@ export interface RequestLoanResult {
   requiredApprovalRole: string;
   status: LoanStatus;
   requestedAt: string;
+  aiAnalysisStatus: AiAnalysisStatus;
 }
 
 export interface RejectLoanRequest {
@@ -95,6 +97,8 @@ export interface LoanSummaryDetail {
   requiredApprovalRole: string;
   status: LoanStatus;
   loanType: LoanType;
+  aiAnalysisStatus: AiAnalysisStatus;
+  aiAnalysisRequestedAt: string | null;
 }
 
 export interface LoanApprovalDetails {
