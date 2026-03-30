@@ -25,8 +25,8 @@
   } @else {
     <div class="loan-list">
       @for (loan of loans(); track loan.loanId) {
-        <div class="loan-card">
-          <div class="loan-top">
+        <div class="loan-card" (click)="openDetail(loan.loanId)" style="cursor:pointer">
+        <div class="loan-top">
             <div class="loan-amount">
               {{ loan.amount | currency:'USD':'symbol':'1.2-2' }}
             </div>

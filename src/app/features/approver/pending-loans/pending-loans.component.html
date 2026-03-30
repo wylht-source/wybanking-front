@@ -306,6 +306,49 @@
           </div>
         }
 
+        <!-- CLIENT DOCUMENTS -->
+        <div class="detail-card">
+          <div class="detail-card-header">
+            <span class="detail-card-title">Client Documents</span>
+            <span class="doc-count">{{ loanDocuments().length }} file(s)</span>
+          </div>
+
+          @if (loanDocuments().length === 0) {
+            <div class="no-docs">
+              <mat-icon>folder_open</mat-icon>
+              <span>No documents uploaded by the client</span>
+            </div>
+          } @else {
+            <div class="doc-list">
+              @for (doc of loanDocuments(); track doc.documentId) {
+                <div class="doc-item">
+                  <div class="doc-icon">
+                    <mat-icon>{{ getFileIcon(doc.contentType) }}</mat-icon>
+                  </div>
+                  <div class="doc-info">
+                    <span class="doc-name">{{ doc.originalFileName }}</span>
+                    <span class="doc-meta">
+              {{ doc.documentType }} · {{ formatBytes(doc.sizeBytes) }} ·
+                      {{ doc.uploadedAt | date:'MMM d, y' }}
+            </span>
+                  </div>
+                  <button mat-icon-button
+                          (click)="downloadDocument(doc)"
+                          [disabled]="downloadingDoc() === doc.documentId"
+                          class="download-btn"
+                          title="Download">
+                    @if (downloadingDoc() === doc.documentId) {
+                      <mat-spinner diameter="18" />
+                    } @else {
+                      <mat-icon>download</mat-icon>
+                    }
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
 
 
         <!-- DECISION SUMMARY -->

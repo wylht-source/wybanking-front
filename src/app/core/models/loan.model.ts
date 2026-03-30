@@ -12,12 +12,21 @@ export interface LoanSummary {
   loanType: LoanType;
 }
 
-export interface LoanDetail extends LoanSummary {
+export interface LoanDetail {
+  loanId: string;
   clientId: string;
+  amount: number;
+  installments: number;
   interestRate: number;
+  monthlyPayment: number;
+  status: LoanStatus;
+  requiredApprovalRole: string;
+  requestedAt: string;
   approvedBy?: string;
   approvedAt?: string;
   rejectionReason?: string;
+  loanType: LoanType;
+  aiAnalysisStatus: AiAnalysisStatus;
   approvalHistory: LoanApprovalHistory[];
 }
 

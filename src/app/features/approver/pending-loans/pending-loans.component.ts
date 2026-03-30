@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,7 +7,8 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { LoanService } from '../../../core/services/loan.service';
 import { AiAnalysisStatus, LoanSummary, LoanApprovalDetails } from '../../../core/models/loan.model';
 import { RejectLoanDialogComponent } from './reject-loan-dialog.component';
-
+import { DocumentService } from '../../../core/services/document.service';
+import { LoanDocument } from '../../../core/models/loan-document.model';
 
 type ViewState = 'list' | 'detail';
 
@@ -112,15 +113,21 @@ export class PendingLoansComponent implements OnInit {
     });
   }
 
+  private documentService = inject(DocumentService);
+  loanDocuments = signal<LoanDocument[]>([]);
+  downloadingDoc = signal<string | null>(null);
+
   openDetail(loan: LoanSummary) {
     this.detailLoading.set(true);
     this.viewState.set('detail');
     this.selectedDetail.set(null);
+    this.loanDocuments.set([]);
 
     this.loanService.getApprovalDetails(loan.loanId).subscribe({
       next: (detail) => {
         this.selectedDetail.set(detail);
         this.detailLoading.set(false);
+        this.loadLoanDocuments(loan.loanId);
       },
       error: () => {
         this.errorMessage.set('Failed to load loan details.');
@@ -128,6 +135,38 @@ export class PendingLoansComponent implements OnInit {
         this.viewState.set('list');
       },
     });
+  }
+
+  private loadLoanDocuments(loanId: string) {
+    this.documentService.getDocuments(loanId).subscribe({
+      next: (docs) => this.loanDocuments.set(docs),
+      error: () => {},
+    });
+  }
+
+  downloadDocument(doc: LoanDocument) {
+    this.downloadingDoc.set(doc.documentId);
+    this.documentService
+      .getDownloadUrl(this.selectedDetail()!.loanSummary.loanId, doc.documentId)
+      .subscribe({
+        next: (result) => {
+          window.open(result.downloadUri, '_blank');
+          this.downloadingDoc.set(null);
+        },
+        error: () => this.downloadingDoc.set(null),
+      });
+  }
+
+  getFileIcon(contentType: string): string {
+    if (contentType === 'application/pdf') return 'picture_as_pdf';
+    if (contentType.startsWith('image/')) return 'image';
+    return 'insert_drive_file';
+  }
+
+  formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   backToList() {

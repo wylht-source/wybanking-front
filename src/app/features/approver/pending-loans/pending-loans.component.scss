@@ -463,3 +463,46 @@
   mat-icon { font-size: 14px; width: 14px; height: 14px; }
   &:hover { background: #f9fafb !important; }
 }
+
+
+.doc-count { font-size: 12px; color: #9ca3af; }
+
+.no-docs {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px; background: #f9fafb; border-radius: 10px;
+  font-size: 13px; color: #9ca3af;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
+.doc-list { display: flex; flex-direction: column; gap: 2px; }
+
+.doc-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 8px;
+  transition: background 0.15s;
+  &:hover { background: #f9fafb; }
+}
+
+.doc-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(135, 217, 255, 0.12);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: #0a5c7a; }
+}
+
+.doc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.doc-name { font-size: 13px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-meta { font-size: 11px; color: #9ca3af; }
+.download-btn { color: #9ca3af; &:hover { color: #0a5c7a; } }
+
+.ai-status-card {
+  &.ai-card-pending { background: rgba(135, 217, 255, 0.06); border-color: rgba(135, 217, 255, 0.25); }
+  &.ai-card-completed { background: rgba(29, 158, 117, 0.06); border-color: rgba(29, 158, 117, 0.2); }
+  &.ai-card-failed { background: #fafafa; border-color: #e5e7eb; }
+}
+
+.ai-status-icon {
+  font-size: 18px; width: 18px; height: 18px; color: #0a5c7a;
+}
+
+.ai-last-attempt { font-size: 11px; color: #9ca3af; margin: 0; }

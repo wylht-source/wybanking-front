@@ -1,0 +1,231 @@
+<div class="page">
+
+  <div class="page-header">
+    <button mat-icon-button (click)="goBack()" class="back-btn">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2>Loan Details</h2>
+    @if (loan()) {
+      <div class="loan-type-tag"
+           [ngClass]="loan()!.loanType === 'Payroll' ? 'tag-payroll' : 'tag-personal'">
+        {{ loan()!.loanType === 'Payroll' ? 'Payroll Loan' : 'Personal Loan' }}
+      </div>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-error">
+      <mat-icon>error</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state"><mat-spinner diameter="40" /></div>
+  } @else if (loan()) {
+    @if (uploadSuccess()) {
+      <div class="success-overlay">
+        <div class="success-modal">
+          <div class="success-modal-icon">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+          <h3>Document sent successfully!</h3>
+          <p>Your document has been uploaded and is now available for review.</p>
+          <button mat-flat-button class="success-close-btn" (click)="uploadSuccess.set(false)">
+            <ng-container>
+              <mat-icon>close</mat-icon>
+              Close
+            </ng-container>
+          </button>
+        </div>
+      </div>
+
+      <!-- AI ANALYSIS STATUS -->
+      @if (loan()!.aiAnalysisStatus !== 'NotRequested') {
+        <div class="detail-card ai-status-card" [ngClass]="getAiCardClass(loan()!.aiAnalysisStatus)">
+          <div class="detail-card-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <mat-icon class="ai-status-icon">{{ getAiIcon(loan()!.aiAnalysisStatus) }}</mat-icon>
+              <span class="detail-card-title">AI Risk Assessment</span>
+            </div>
+            <span class="ai-badge" [ngClass]="getAiBadgeClass(loan()!.aiAnalysisStatus)">
+        {{ getAiStatusLabel(loan()!.aiAnalysisStatus) }}
+      </span>
+          </div>
+          <p class="ai-message">{{ getAiMessage(loan()!.aiAnalysisStatus) }}</p>
+        </div>
+      }
+    }
+    <!-- LOAN SUMMARY -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span class="detail-card-title">Loan Summary</span>
+        <span class="badge" [ngClass]="getStatusClass(loan()!.status)">
+          {{ loan()!.status }}
+        </span>
+      </div>
+
+      <div class="summary-amount">
+        {{ loan()!.amount | currency:'USD':'symbol':'1.2-2' }}
+      </div>
+      <div class="summary-sub">
+        {{ loan()!.installments }} installments of
+        {{ loan()!.monthlyPayment | currency:'USD':'symbol':'1.2-2' }} / month
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Interest rate</span>
+          <span class="info-value">{{ loan()!.interestRate | percent:'1.1-2' }} / month</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Required approval</span>
+          <span class="info-value">{{ loan()!.requiredApprovalRole }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Requested at</span>
+          <span class="info-value">{{ loan()!.requestedAt | date:'MMM d, y' }}</span>
+        </div>
+        @if (loan()!.approvedAt) {
+          <div class="info-item">
+            <span class="info-label">Approved at</span>
+            <span class="info-value">{{ loan()!.approvedAt | date:'MMM d, y' }}</span>
+          </div>
+        }
+        @if (loan()!.rejectionReason) {
+          <div class="info-item full-width">
+            <span class="info-label">Rejection reason</span>
+            <span class="info-value rejection">{{ loan()!.rejectionReason }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- PAYMENT OVERVIEW -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span class="detail-card-title">Payment Overview</span>
+      </div>
+      <div class="payment-grid">
+        <div class="payment-item highlight">
+          <span class="payment-label">Monthly payment</span>
+          <span class="payment-value main">{{ loan()!.monthlyPayment | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="payment-item">
+          <span class="payment-label">Total payable</span>
+          <span class="payment-value">{{ totalPayable() | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="payment-item">
+          <span class="payment-label">Total interest</span>
+          <span class="payment-value">{{ totalInterest() | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="payment-item">
+          <span class="payment-label">Installments</span>
+          <span class="payment-value">{{ loan()!.installments }} months</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span class="detail-card-title">Documents</span>
+        <span class="doc-count">{{ documents().length }} file(s)</span>
+      </div>
+
+      @if (documents().length === 0) {
+        <div class="no-docs">
+          <mat-icon>folder_open</mat-icon>
+          <span>No documents uploaded yet</span>
+        </div>
+      } @else {
+        <div class="doc-list">
+          @for (doc of documents(); track doc.documentId) {
+            <div class="doc-item">
+              <div class="doc-icon">
+                <mat-icon>{{ getFileIcon(doc.contentType) }}</mat-icon>
+              </div>
+              <div class="doc-info">
+                <span class="doc-name">{{ doc.originalFileName }}</span>
+                <span class="doc-meta">
+                  {{ doc.documentType }} · {{ formatBytes(doc.sizeBytes) }} ·
+                  {{ doc.uploadedAt | date:'MMM d, y' }}
+                </span>
+              </div>
+              <button mat-icon-button
+                      (click)="downloadDocument(doc)"
+                      [disabled]="downloading() === doc.documentId"
+                      class="download-btn"
+                      title="Download">
+                @if (downloading() === doc.documentId) {
+                  <mat-spinner diameter="18" />
+                } @else {
+                  <mat-icon>download</mat-icon>
+                }
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+    @if (loan()!.status === 'PendingApproval') {
+      <div class="upload-section">
+        <div class="upload-header">Upload a document</div>
+
+        <mat-form-field appearance="outline" style="width:100%">
+          <mat-label>Document type (optional)</mat-label>
+          <mat-select (selectionChange)="selectedDocumentType.set($event.value)">
+            @for (opt of documentTypeOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @if (!selectedFile()) {
+          <label class="upload-btn">
+            <mat-icon>upload_file</mat-icon>
+            Choose file to upload
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event)" hidden />
+          </label>
+          <p class="upload-hint">PDF, JPG or PNG — max 10MB</p>
+        } @else {
+          <div class="selected-file">
+            <div class="selected-file-info">
+              <mat-icon>{{ getFileIcon(selectedFile()!.type) }}</mat-icon>
+              <div>
+                <span class="doc-name">{{ selectedFile()!.name }}</span>
+                <span class="doc-meta">{{ formatBytes(selectedFile()!.size) }}</span>
+              </div>
+            </div>
+            <button mat-icon-button (click)="clearSelectedFile()" class="remove-file-btn">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+
+          @if (uploadError()) {
+            <div class="upload-error">
+              <mat-icon>error</mat-icon>
+              {{ uploadError() }}
+            </div>
+          }
+
+          <button mat-flat-button class="submit-upload-btn"
+                  (click)="submitUpload()"
+                  [disabled]="uploading()">
+            @if (uploading()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              <ng-container>
+                <mat-icon>cloud_upload</mat-icon>
+                Send document
+              </ng-container>
+            }
+          </button>
+        }
+      </div>
+    }
+
+    </div>
+
+  }
+</div>
