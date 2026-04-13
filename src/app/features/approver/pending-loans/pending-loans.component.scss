@@ -506,3 +506,8 @@
 }
 
 .ai-last-attempt { font-size: 11px; color: #9ca3af; margin: 0; }
+.ai-doc-count {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #0f6e56; margin: 0;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}

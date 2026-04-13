@@ -1,18 +1,18 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import {
   LoanDetail,
   LoanSummary,
   RequestLoanRequest,
   RequestLoanResult,
-  RejectLoanRequest,
   RequestPayrollLoanRequest,
   RequestPayrollLoanResult,
+  RejectLoanRequest,
   LoanApprovalDetails,
+  AiAnalysisStatus,
 } from '../models/loan.model';
 import { PagedResult } from '../models/transaction.model';
-import { AiAnalysisStatus } from '../models/loan.model';
 
 @Injectable({ providedIn: 'root' })
 export class LoanService {
@@ -20,16 +20,16 @@ export class LoanService {
 
   constructor(private http: HttpClient) {}
 
-  getApprovalDetails(id: string) {
-    return this.http.get<LoanApprovalDetails>(`${this.base}/${id}/approval-details`);
+  requestLoan(request: RequestLoanRequest) {
+    return this.http.post<RequestLoanResult>(`${this.base}/request`, request, {
+      headers: this.idempotencyHeader(),
+    });
   }
 
   requestPayrollLoan(request: RequestPayrollLoanRequest) {
-    return this.http.post<RequestPayrollLoanResult>(`${this.base}/request-payroll`, request);
-  }
-
-  requestLoan(request: RequestLoanRequest) {
-    return this.http.post<RequestLoanResult>(`${this.base}/request`, request);
+    return this.http.post<RequestPayrollLoanResult>(`${this.base}/request-payroll`, request, {
+      headers: this.idempotencyHeader(),
+    });
   }
 
   getLoan(id: string) {
@@ -48,6 +48,16 @@ export class LoanService {
     });
   }
 
+  getDecidedLoans(page = 1, pageSize = 20) {
+    return this.http.get<PagedResult<LoanSummary>>(`${this.base}/decided`, {
+      params: { page, pageSize },
+    });
+  }
+
+  getApprovalDetails(id: string) {
+    return this.http.get<LoanApprovalDetails>(`${this.base}/${id}/approval-details`);
+  }
+
   approveLoan(id: string) {
     return this.http.post<void>(`${this.base}/${id}/approve`, {});
   }
@@ -60,15 +70,15 @@ export class LoanService {
     return this.http.post<void>(`${this.base}/${id}/cancel`, {});
   }
 
-  getDecidedLoans(page = 1, pageSize = 20) {
-    return this.http.get<PagedResult<LoanSummary>>(`${this.base}/decided`, {
-      params: { page, pageSize },
-    });
-  }
   retryAiAnalysis(id: string) {
-    return this.http.post<{ loanId: string; aiAnalysisStatus: AiAnalysisStatus }>(
-      `${this.base}/${id}/retry-ai-analysis`,
-      {},
-    );
+    return this.http.post<{
+      loanId: string;
+      aiAnalysisStatus: AiAnalysisStatus;
+      documentCount: number;
+    }>(`${this.base}/${id}/retry-ai-analysis`, {});
+  }
+
+  private idempotencyHeader(): HttpHeaders {
+    return new HttpHeaders({ 'Idempotency-Key': crypto.randomUUID() });
   }
 }

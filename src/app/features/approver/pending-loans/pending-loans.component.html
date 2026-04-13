@@ -409,7 +409,12 @@
             } @else {
               <p class="ai-message">{{ getAiMessage(selectedDetail()!.loanSummary.aiAnalysisStatus) }}</p>
             }
-
+            @if (aiRetryDocumentCount() !== null) {
+              <p class="ai-doc-count">
+                <mat-icon>check</mat-icon>
+                {{ aiRetryDocumentCount() }} document(s) included in this request.
+              </p>
+            }
           </div>
         }
 

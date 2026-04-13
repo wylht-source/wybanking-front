@@ -47,9 +47,10 @@ export class PendingLoansComponent implements OnInit {
     this.loadLoans();
   }
   aiRetryCooldown = signal(0);
-
+  aiRetryDocumentCount = signal<number | null>(null);
   retryAiAnalysis(loanId: string) {
     this.aiRetrying.set(true);
+    this.aiRetryDocumentCount.set(null);
     this.loanService.retryAiAnalysis(loanId).subscribe({
       next: (result) => {
         this.selectedDetail.update((d) =>
@@ -64,6 +65,7 @@ export class PendingLoansComponent implements OnInit {
               }
             : d,
         );
+        this.aiRetryDocumentCount.set(result.documentCount);
         this.aiRetrying.set(false);
         this.startCooldown();
       },
